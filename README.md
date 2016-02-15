@@ -25,7 +25,7 @@ Travis integration is easy, thanks to `cargo install`:
 language: rust
 before_script:
   - |
-      cargo install cargo-local-pkgs &&
+      cargo install cargo-local-pkgs --vers 0.1 &&
       export PATH=$HOME/.cargo/bin:$PATH
 script:
   - cargo local-pkgs test
