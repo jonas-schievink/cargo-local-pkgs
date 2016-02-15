@@ -96,7 +96,8 @@ fn run() -> Result<(), RunError> {
 
     let mut file = try!(File::open("Cargo.lock").map_err(|e| match e.kind() {
         ErrorKind::NotFound => {
-            StringError::from("lock file 'Cargo.lock' not found (try running `cargo update` first)")
+            StringError::from("lock file 'Cargo.lock' not found (try running \
+                               `cargo generate-lockfile` first)")
         }
         _ => {
             StringError::from(format!("error opening 'Cargo.lock': {}", e))
