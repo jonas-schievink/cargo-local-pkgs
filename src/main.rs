@@ -78,26 +78,38 @@ fn run() -> Result<(), RunError> {
     // Any other arg is passed along to cargo
     let cargo_args: Vec<_> = args.collect();
 
+    // Helper for running Cargo on a package
+    let run_cargo = |pkg: &str| -> Result<(), RunError> {
+        let mut cmd = Command::new("cargo");
+        cmd.arg(&cargo_cmd).arg("-p").arg(pkg).args(&cargo_args);
+        info!("running {:?}", cmd);
+        let status = try!(cmd.status());
+
+        if !status.success() {
+            return Err(StringError::from(
+                format!("cargo exited with error: {}", status)
+            ).into());
+        }
+
+        Ok(())
+    };
+
     let mut file = try!(File::open("Cargo.lock"));
     let mut string = String::new();
     try!(file.read_to_string(&mut string));
     let lockfile = try!(lockfile::parse(&string));
     debug!("parsed lockfile: {:#?}", lockfile);
-    info!("root pkg: {}", lockfile.root.name);
+    info!("root pkg: {}", &lockfile.root.name);
+
+    // Run the subcommand on the main pkg. This isn't normally done via `-p`, but should work
+    // regardless.
+    info!("handling root pkg");
+    try!(run_cargo(&lockfile.root.name));
 
     for dep in &lockfile.package {
         if dep.is_local() {
             info!("got local package '{}'", dep.name);
-            let mut cmd = Command::new("cargo");
-            cmd.arg(&cargo_cmd).arg("-p").arg(&dep.name).args(&cargo_args);
-            info!("running {:?}", cmd);
-            let status = try!(cmd.status());
-
-            if !status.success() {
-                return Err(StringError::from(
-                    format!("cargo exited with error: {}", status)
-                ).into());
-            }
+            try!(run_cargo(&dep.name));
         }
     }
 
