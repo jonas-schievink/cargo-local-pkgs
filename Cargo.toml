@@ -11,6 +11,7 @@ toml = "0.1"
 log = "0.3"
 env_logger = { version = "0.3", optional = true }
 rustc-serialize = "0.3"
+walkdir = "0.1"
 
 [features]
 logging = ["env_logger"]

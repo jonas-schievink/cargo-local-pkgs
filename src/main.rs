@@ -1,13 +1,18 @@
 #[macro_use] extern crate log;
 extern crate toml;
 extern crate rustc_serialize;
+extern crate walkdir;
 
 mod lockfile;
 mod manifest;
 
+use walkdir::WalkDir;
+
+use std::env::current_dir;
 use std::fs::File;
 use std::io::{self, Read, Write, ErrorKind};
 use std::process::{self, Command, ExitStatus};
+use std::path::{Path, PathBuf};
 use std::fmt;
 use std::env;
 use std::iter;
@@ -39,6 +44,15 @@ enum RunError {
     InvalidArgument(String),
     /// Invoked subcommand returned an error
     ExecError(ExitStatus),
+    /// Error while reading a `Cargo.toml`
+    ManifestError(manifest::ReadError),
+    /// Probably missed a package
+    MissedPkg {
+        /// Name of the missed package
+        package: String,
+        /// Path to the `Cargo.toml`
+        manifest: PathBuf,
+    },
 }
 
 impl From<io::Error> for RunError {
@@ -53,6 +67,12 @@ impl From<lockfile::ReadError> for RunError {
     }
 }
 
+impl From<manifest::ReadError> for RunError {
+    fn from(e: manifest::ReadError) -> Self {
+        RunError::ManifestError(e)
+    }
+}
+
 impl fmt::Display for RunError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -63,6 +83,10 @@ impl fmt::Display for RunError {
             RunError::IoError(ref e) => write!(f, "{}", e),
             RunError::InvalidArgument(ref e) => write!(f, "invalid arguments: {}", e),
             RunError::ExecError(status) => write!(f, "command exited with error: {}", status),
+            RunError::ManifestError(ref e) => write!(f, "error reading manifest: {}", e),
+            RunError::MissedPkg { ref package, ref manifest } =>
+                // FIXME: Better error message
+                write!(f, "probably missed package {} (from {})", package, manifest.display()),
         }
     }
 }
@@ -121,6 +145,29 @@ fn run() -> Result<(), RunError> {
                                  .map(|pkg| &pkg.name))
                           .collect::<Vec<_>>();
     debug!("local packages: {:?}", local_pkgs);
+
+    // Search for manifests we might have missed, read them, and report any packages
+    for entry in WalkDir::new(current_dir().unwrap()) {
+        let entry = entry.unwrap();
+        if entry.file_name() == "Cargo.toml" {
+            let path = entry.path();
+            debug!("checking manifest: {}", path.display());
+
+            let mut file = try!(File::open(path));
+            let mut manifest = String::new();
+            try!(file.read_to_string(&mut manifest));
+            let pkgname = try!(manifest::package_name_from_manifest(&manifest));
+            debug!("=> {}", pkgname);
+
+            if local_pkgs.iter().find(|name| ***name == pkgname).is_none() {
+                // Missed!
+                return Err(RunError::MissedPkg {
+                    package: String::from(pkgname),
+                    manifest: PathBuf::from(path),
+                });
+            }
+        }
+    }
 
     // Now run the subcommand for all packages we collected
     for pkg in &local_pkgs {
