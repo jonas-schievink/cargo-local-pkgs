@@ -5,7 +5,7 @@ extern crate rustc_serialize;
 mod lockfile;
 
 use std::fs::File;
-use std::io::{self, Read, Write};
+use std::io::{self, Read, Write, ErrorKind};
 use std::process::{self, Command};
 use std::fmt;
 use std::env;
@@ -94,7 +94,14 @@ fn run() -> Result<(), RunError> {
         Ok(())
     };
 
-    let mut file = try!(File::open("Cargo.lock"));
+    let mut file = try!(File::open("Cargo.lock").map_err(|e| match e.kind() {
+        ErrorKind::NotFound => {
+            StringError::from("lock file 'Cargo.lock' not found (try running `cargo update` first)")
+        }
+        _ => {
+            StringError::from(format!("error opening 'Cargo.lock': {}", e))
+        }
+    }));
     let mut string = String::new();
     try!(file.read_to_string(&mut string));
     let lockfile = try!(lockfile::parse(&string));
