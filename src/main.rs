@@ -12,7 +12,7 @@ use std::env::current_dir;
 use std::fs::File;
 use std::io::{self, Read, Write, ErrorKind};
 use std::process::{self, Command, ExitStatus};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::fmt;
 use std::env;
 use std::iter;
