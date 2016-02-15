@@ -25,7 +25,7 @@ Travis integration is easy, thanks to `cargo install`:
 language: rust
 before_script:
   - |
-      cargo install cargo-local-pkgs --vers 0.1 &&
+      cargo install cargo-local-pkgs --vers 0.2 &&
       export PATH=$HOME/.cargo/bin:$PATH
 script:
   - cargo local-pkgs test
@@ -41,6 +41,6 @@ script:
 
 ## Notes
 
-* The main package must have a dependency on all other crates in the repo (local crates not in the dependency graph of the main crate are skipped)
+* The main package must have a dependency on all other crates in the repo (local crates not in the dependency graph of the main crate cause an error)
 * A `Cargo.lock` must exist (you can either check it in, or run `cargo generate-lockfile` before using this subcommand)
 * You can use this to invoke external subcommands, but they must support specifying a package via `-p <pkg>`
