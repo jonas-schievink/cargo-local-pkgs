@@ -1,6 +1,7 @@
 # Run cargo subcommands on all local packages
 
-A tiny cargo subcommand for executing other subcommands on all "local" packages (ie. packages in the same repository). This allows running `cargo test` on all crates in a repo with a single command.
+A tiny cargo subcommand for executing other subcommands on all "local" packages (a local package is one that is a path-dependency of the main package -- ie. a package in the same repository). This allows running `cargo test` on all crates in a repo with a single command.
+
 
 ## Installation
 
