@@ -6,10 +6,9 @@ mod lockfile;
 
 use std::fs::File;
 use std::io::{self, Read, Write, ErrorKind};
-use std::process::{self, Command};
+use std::process::{self, Command, ExitStatus};
 use std::fmt;
 use std::env;
-use std::error::Error;
 
 #[cfg(feature = "logging")]
 fn init_logging() {
@@ -20,60 +19,66 @@ fn init_logging() {
 #[cfg(not(feature = "logging"))]
 fn init_logging() {}
 
-/// "Stringly typed" error message
+
+/// The kinds of errors that can occur in `run()`.
 #[derive(Debug)]
-struct StringError(String);
+enum RunError {
+    /// The lock file didn't exist
+    LockFileNotFound,
+    /// Lock file exists, but is invalid
+    LockFileError(lockfile::ReadError),
+    /// I/O error when trying to open the given file
+    ///
+    /// (less specific than `LockFileNotFound`, but more specific then `IoError`)
+    FileError(String, io::Error),
+    /// Unknown I/O error
+    IoError(io::Error),
+    /// Invalid command line arguments (with description)
+    InvalidArgument(String),
+    /// Invoked subcommand returned an error
+    ExecError(ExitStatus),
+}
 
-impl<T: Into<String>> From<T> for StringError {
-    fn from(t: T) -> Self {
-        StringError(t.into())
+impl From<io::Error> for RunError {
+    fn from(e: io::Error) -> Self {
+        RunError::IoError(e)
     }
 }
 
-impl fmt::Display for StringError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl Error for StringError {
-    fn description(&self) -> &str {
-        &self.0
-    }
-}
-
-#[derive(Debug)]
-struct RunError(Box<Error>);
-
-impl<T: Error + 'static> From<T> for RunError {
-    fn from(t: T) -> Self {
-        RunError(Box::new(t))
+impl From<lockfile::ReadError> for RunError {
+    fn from(e: lockfile::ReadError) -> Self {
+        RunError::LockFileError(e)
     }
 }
 
 impl fmt::Display for RunError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
+        match *self {
+            RunError::LockFileNotFound => write!(f, "lock file 'Cargo.lock' not found (try running \
+                                                     `cargo generate-lockfile` first)"),
+            RunError::LockFileError(ref e) => write!(f, "error reading lockfile: {}", e),
+            RunError::FileError(ref name, ref e) => write!(f, "error opening '{}': {}", name, e),
+            RunError::IoError(ref e) => write!(f, "{}", e),
+            RunError::InvalidArgument(ref e) => write!(f, "invalid arguments: {}", e),
+            RunError::ExecError(status) => write!(f, "command exited with error: {}", status),
+        }
     }
 }
 
 /// Main entry point.
-///
-/// Returns a `RunError` on error, which can carry any type that implements `Display`.
 fn run() -> Result<(), RunError> {
     // First, validate cmd line arguments
     let mut args = env::args();
     // We can dispose of the first 2 arguments (the executable, and the subcommand passed by cargo)
     args.next().expect("exec name not passed as argument");
     if args.next() == None {
-        return Err(StringError::from(
-            "subcommand not passed as argument (not running with cargo?)"
-        ).into());
+        return Err(RunError::InvalidArgument("subcommand not passed as argument (not running with \
+                                              cargo?)".into()));
     }
     // Then we expect at least one more argument to pass to cargo
     let cargo_cmd = match args.next() {
         Some(cmd) => cmd,
-        None => return Err(StringError::from("no cargo command passed").into()),
+        None => return Err(RunError::InvalidArgument("no cargo command passed".into())),
     };
     // Any other arg is passed along to cargo
     let cargo_args: Vec<_> = args.collect();
@@ -86,9 +91,7 @@ fn run() -> Result<(), RunError> {
         let status = try!(cmd.status());
 
         if !status.success() {
-            return Err(StringError::from(
-                format!("cargo exited with error: {}", status)
-            ).into());
+            return Err(RunError::ExecError(status));
         }
 
         Ok(())
@@ -96,11 +99,10 @@ fn run() -> Result<(), RunError> {
 
     let mut file = try!(File::open("Cargo.lock").map_err(|e| match e.kind() {
         ErrorKind::NotFound => {
-            StringError::from("lock file 'Cargo.lock' not found (try running \
-                               `cargo generate-lockfile` first)")
+            RunError::LockFileNotFound
         }
         _ => {
-            StringError::from(format!("error opening 'Cargo.lock': {}", e))
+            RunError::FileError(String::from("Cargo.lock"), e)
         }
     }));
     let mut string = String::new();
@@ -131,7 +133,7 @@ fn main() {
         Ok(()) => {},
         Err(e) => {
             let mut stderr = io::stderr();
-            writeln!(stderr, "An error occurred: {}", e).unwrap();
+            writeln!(stderr, "an error occurred: {}", e).unwrap();
             process::exit(1);
         }
     }
