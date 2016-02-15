@@ -9,6 +9,7 @@ use std::io::{self, Read, Write, ErrorKind};
 use std::process::{self, Command, ExitStatus};
 use std::fmt;
 use std::env;
+use std::iter;
 
 #[cfg(feature = "logging")]
 fn init_logging() {
@@ -111,16 +112,18 @@ fn run() -> Result<(), RunError> {
     debug!("parsed lockfile: {:#?}", lockfile);
     info!("root pkg: {}", &lockfile.root.name);
 
-    // Run the subcommand on the main pkg. This isn't normally done via `-p`, but should work
-    // regardless.
-    info!("handling root pkg");
-    try!(run_cargo(&lockfile.root.name));
+    // First, collect all local packages, including the main package
+    let local_pkgs = iter::once(&lockfile.root.name)
+                          .chain(lockfile.package
+                                 .iter()
+                                 .filter(|pkg| pkg.is_local())
+                                 .map(|pkg| &pkg.name))
+                          .collect::<Vec<_>>();
+    debug!("local packages: {:?}", local_pkgs);
 
-    for dep in &lockfile.package {
-        if dep.is_local() {
-            info!("got local package '{}'", dep.name);
-            try!(run_cargo(&dep.name));
-        }
+    // Now run the subcommand for all packages we collected
+    for pkg in &local_pkgs {
+        try!(run_cargo(pkg));
     }
 
     Ok(())
