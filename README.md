@@ -42,5 +42,5 @@ script:
 ## Notes
 
 * The main package must have a dependency on all other crates in the repo (local crates not in the dependency graph of the main crate are skipped)
-* A `Cargo.lock` must exist (you can either check it in, or run `cargo build` or `cargo update` before using this subcommand)
+* A `Cargo.lock` must exist (you can either check it in, or run `cargo generate-lockfile` before using this subcommand)
 * You can use this to invoke external subcommands, but they must support specifying a package via `-p <pkg>`
