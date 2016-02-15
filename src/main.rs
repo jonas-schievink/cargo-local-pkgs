@@ -3,6 +3,7 @@ extern crate toml;
 extern crate rustc_serialize;
 
 mod lockfile;
+mod manifest;
 
 use std::fs::File;
 use std::io::{self, Read, Write, ErrorKind};
