@@ -2,6 +2,11 @@
 
 A tiny cargo subcommand for executing other subcommands on all "local" packages (a local package is one that is a path-dependency of the main package -- ie. a package in the same repository). This allows running `cargo test` on all crates in a repo with a single command.
 
+## Notes
+
+* The main package must have a dependency on all other crates in the repo (local crates not in the dependency graph of the main crate cause an error)
+* A `Cargo.lock` must exist (you can either check it in, or run `cargo generate-lockfile` before using this subcommand)
+* You can use this to invoke external subcommands, but they must support specifying a package via `-p <pkg>`
 
 ## Installation
 
@@ -39,9 +44,3 @@ script:
       cargo generate-lockfile &&
       cargo local-pkgs test
 ```
-
-## Notes
-
-* The main package must have a dependency on all other crates in the repo (local crates not in the dependency graph of the main crate cause an error)
-* A `Cargo.lock` must exist (you can either check it in, or run `cargo generate-lockfile` before using this subcommand)
-* You can use this to invoke external subcommands, but they must support specifying a package via `-p <pkg>`
