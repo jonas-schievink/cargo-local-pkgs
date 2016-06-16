@@ -28,6 +28,7 @@ fn collect_local_pkgs(cargo_args: &[&str]) -> Result<Vec<String>, Box<Error>> {
     debug!("invoking {:?}", cargo);
 
     let stdout = String::from_utf8(try!(cargo.output()).stdout).unwrap();
+    let stdout = stdout.lines().last().unwrap();
     debug!("cargo metadata: {}", stdout);
 
     let mut local_pkgs = Vec::new();
