@@ -1,17 +1,16 @@
 [package]
 name = "cargo-local-pkgs"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Jonas Schievink <jonas@schievink.net>"]
 license = "Apache-2.0/MIT"
 repository = "https://github.com/jonas-schievink/cargo-local-pkgs"
 description = "Run cargo commands on all local packages"
 
 [dependencies]
-toml = "0.1"
 log = "0.3"
 env_logger = { version = "0.3", optional = true }
-rustc-serialize = "0.3"
-walkdir = "0.1"
+clap = "2.6"
+serde_json = "0.7"
 
 [features]
 logging = ["env_logger"]
