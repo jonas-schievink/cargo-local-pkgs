@@ -1,7 +1,7 @@
 [package]
 name = "cargo-local-pkgs"
 version = "0.3.1"
-authors = ["Jonas Schievink <jonas@schievink.net>"]
+authors = ["Jonas Schievink <jonasschievink@gmail.com>"]
 license = "Apache-2.0/MIT"
 repository = "https://github.com/jonas-schievink/cargo-local-pkgs"
 description = "Run cargo commands on all local packages"
