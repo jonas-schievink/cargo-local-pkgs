@@ -1,6 +1,6 @@
 [package]
 name = "cargo-local-pkgs"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Jonas Schievink <jonasschievink@gmail.com>"]
 license = "Apache-2.0/MIT"
 repository = "https://github.com/jonas-schievink/cargo-local-pkgs"

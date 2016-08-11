@@ -45,14 +45,17 @@ fn collect_local_pkgs(cargo_args: &[&str]) -> Result<Vec<String>, Box<Error>> {
         }
     }
 
+    debug!("got local package list: {:?}", local_pkgs);
+
     Ok(local_pkgs)
 }
 
 /// Main entry point.
 fn run(args: &ArgMatches) -> Result<(), Box<Error>> {
-    let (cargo_cmd, subcmd_args) = args.subcommand();
-    info!("subcmd: {} {:?}", cargo_cmd, subcmd_args);
-    let mut arg_iter = subcmd_args.unwrap().values_of(cargo_cmd).unwrap();
+    // When used through cargo, the subcommand is always `local-pkgs`.
+    let (local_pkgs, subcmd_args) = args.subcommand();
+    info!("subcmd: {} {:?}", local_pkgs, subcmd_args);
+    let mut arg_iter = subcmd_args.unwrap().values_of("").unwrap();
     let cargo_cmd = arg_iter.next().unwrap();
     let subcmd_args = arg_iter.collect::<Vec<_>>();
     let cargo_args = args.value_of("CARGO_ARGS").map(|cargs| cargs.split_whitespace().collect::<Vec<_>>()).unwrap_or(subcmd_args);
