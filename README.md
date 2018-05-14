@@ -1,5 +1,7 @@
 # Run cargo subcommands on all local packages
 
+**DEPRECATED: The functionality of this tool is no longer needed since you can now pass `--all` to most Cargo operations to achieve the same effect.**
+
 A tiny cargo subcommand for executing other subcommands on all "local" packages (a local package is one that is a path-dependency of the main package -- ie. a package in the same repository). This allows running `cargo test` on all crates in a repo with a single command.
 
 ## Notes
